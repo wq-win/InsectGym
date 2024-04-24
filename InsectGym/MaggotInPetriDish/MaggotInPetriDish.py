@@ -26,7 +26,7 @@ class MaggotInPetriDishEnv(discrete.DiscreteEnv):
 
     "          +---------+",
     "odor      |A:A:M:O:O|",
-    "maggot    | : : : : |",
+    "maggot    | : :M: : |",
     "reinforcer|F:F:F:F:F|",
     "          +---------+",
 
@@ -35,7 +35,7 @@ class MaggotInPetriDishEnv(discrete.DiscreteEnv):
     odor states:        none,   amylacetate (AM),   1-octanol (OCT)
     reinforcer states:  none,   fructose,   quinine hemisulphate
 
-    pertri dishes setting up is by combination of the odor states.
+    petri dishes setting up is by combination of the odor states.
     Hence, the petri dish's state can be: AM and None, AM and OCT, None and OCT.
 
     For a maggot, there are 3 states of odors and 3 states of reinforcers. Treating odor states and reinforcer states as two
@@ -143,12 +143,18 @@ class MaggotInPetriDishEnv(discrete.DiscreteEnv):
         initial_state_distrib = np.zeros(num_states)
         initial_state_distrib[2] = 1
         initial_state_distrib /= initial_state_distrib.sum()
-
+        # initial_state_distrib = [0., 0., 1., 0., 0.]
         num_actions = 5
         P = {
             state: {action: [] for action in range(num_actions)}
             for state in range(num_states)
         }
+        # P[s][a] == [(probability, nextstate, reward, done), ...]
+        # P = {0: {0: [], 1: [], 2: [], 3: [], 4: []},
+        #      1: {0: [], 1: [], 2: [], 3: [], 4: []},
+        #      2: {0: [], 1: [], 2: [], 3: [], 4: []},
+        #      3: {0: [], 1: [], 2: [], 3: [], 4: []},
+        #      4: {0: [], 1: [], 2: [], 3: [], 4: []}}
 
 
         # done = False
@@ -231,7 +237,7 @@ class MaggotInPetriDishEnv(discrete.DiscreteEnv):
                             P[a_location][an_action].append((0.5, a_location, reward, done))
                             new_location = a_location + 1
                             P[a_location][an_action].append((0.5, new_location, reward, done))
-                        if a_location == 4:
+                        elif a_location == 4:
                             new_location = a_location - 1
                             P[a_location][an_action].append((0.5, new_location, reward, done))
                             P[a_location][an_action].append((0.5, a_location, reward, done))
@@ -240,7 +246,9 @@ class MaggotInPetriDishEnv(discrete.DiscreteEnv):
                             P[a_location][an_action].append((0.5, new_location, reward, done))
                             new_location = a_location + 1
                             P[a_location][an_action].append((0.5, new_location, reward, done))
-
+        # print('p:',P)
+        for key, value in P.items():
+            print(key,value)
 
         self.mapInit()
         discrete.DiscreteEnv.__init__(
@@ -312,6 +320,7 @@ class MaggotInPetriDishEnv(discrete.DiscreteEnv):
         outfile = StringIO() if mode == "ansi" else sys.stdout
         out = self.desc.copy().tolist()
         out = [[c.decode("utf-8") for c in line] for line in out]
+        # print('self.s:',self.s)
         out[2][self.layer_name_length + (self.s + 1) * 2] = utils.colorize('m', "yellow", highlight=True)
         outfile.write("\n".join(["".join(row) for row in out]) + "\n")
         # No need to return anything for human
@@ -322,20 +331,23 @@ class MaggotInPetriDishEnv(discrete.DiscreteEnv):
 
 if __name__ == "__main__":
     odor = ['AM', 'OCT']
-    reinforcer = ['fructose']
-    # odor = ['OCT', 'OCT']
+    reinforcer = ['quinine','fructose', None]
+    odor = ['OCT', 'OCT']
     # reinforcer = [None]
     env = MaggotInPetriDishEnv(odor, reinforcer)
     obs = env.reset()
-    print(obs, env.decode(obs))
+    # print('env.s:',env.s)
+    # print('\n reset:',obs, env.decode(obs))
     while True:
         # Take a random action
         action = env.action_space.sample()
+        # print('action:',action)
         obs, reward, done, info = env.step(action)
 
         # Render the game
         env.render()
-        print(obs, reward, done, info, env.decode(obs))
+        # print(obs, reward, done, info, env.decode(obs))
+        print(f'obs:{obs},reward:{reward},env.decode(obs):{env.decode(obs)}')
 
         if done:
             break
