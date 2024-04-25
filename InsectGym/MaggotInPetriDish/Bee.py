@@ -5,6 +5,7 @@ from io import StringIO
 from gym import utils
 from gym.envs.toy_text import discrete
 import numpy as np
+from tqdm import tqdm
 
 
 MAP = [
@@ -53,7 +54,7 @@ class BeeFoodEnv(discrete.DiscreteEnv):
                 elif action == 2:  # right
                     next_state = state + 1
                     prob = .88  # 1-prob概率移动失败
-                    if state in range(num_states)[2::num_locations]:  # 若bee在最右边，继续右移，状态不变
+                    if state in range(num_states)[num_locations-1::num_locations]:  # 若bee在最右边，继续右移，状态不变
                         next_state = state
                 elif action == 3:  # left
                     next_state = state - 1 
@@ -70,8 +71,8 @@ class BeeFoodEnv(discrete.DiscreteEnv):
                 if prob != 1:
                     P[state][action].append((1-prob, state, reward,done))  # 动作执行失败，状态不变
 
-        for key, value in P.items():
-            print(key,value)      
+        # for key, value in P.items():
+        #     print(key,value)      
         # print(P[0][0])
         self.mapInit()
         discrete.DiscreteEnv.__init__(
@@ -102,26 +103,29 @@ class BeeFoodEnv(discrete.DiscreteEnv):
             
             
 if __name__ == "__main__":
-    env = BeeFoodEnv()
+    env = BeeFoodEnv(2)
     obs = env.reset()
     
     done_step = 0
     average_step = 0
-    eps = 1000
-    for _ in range(eps):
-        done_step = 0
-        while True:
-            action = env.action_space.sample()
-        
-            obs, reward, done, info = env.step(action)
+    eps = 1000000
+    with tqdm(total=eps) as pbar:
+        for _ in range(eps):
+            done_step = 0
+            obs = env.reset()
+            while True:
+                action = env.action_space.sample()
+            
+                obs, reward, done, info = env.step(action)
 
-            # print('action:%d, state:%d, reward:%d, done:%s, info:%s' % (action, obs, reward, done, info))
-        
-            # env.render()
-            done_step += 1
-            if done:
-                # print('done')
-                average_step += done_step
-                break
+                # print('action:%d, state:%d, reward:%d, done:%s, info:%s' % (action, obs, reward, done, info))
+            
+                # env.render()
+                done_step += 1
+                if done:
+                    # print('done')
+                    average_step += done_step
+                    break
+            pbar.update()
     print(average_step/eps)
     env.close()
