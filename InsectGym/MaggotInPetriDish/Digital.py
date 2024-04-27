@@ -103,8 +103,9 @@ class DiditalEnv(discrete.DiscreteEnv):
             for state in range(num_states)
         }
         
-        for state in range(num_states):
+        for num_location in range(num_locations):
             for action in range(num_actions):
+                state = num_location
                 prob, reward, done = 1, self.reward_options[0], False
 
                 if action == 0:
@@ -113,15 +114,16 @@ class DiditalEnv(discrete.DiscreteEnv):
                         reward = self.reward_options[1]
                         done = True
                 elif action == 1:
-                    next_state = state + 1
-                    if  next_state > num_states-1:
-                        next_state = num_states-1
+                    next_state = min(state + 1, num_states-1)
+                    prob = .88
                 else:
-                    next_state = state - 1 
-                    if next_state < 0:
-                        next_state = 0
+                    next_state = max(state - 1, 0)
+                    prob = .88 
                         
                 P[state][action].append((prob, next_state, reward, done))
+                if prob != 1:
+                    P[state][action].append((1-prob, state, reward,done))  # 动作执行失败，状态不变
+
         # for key, value in P.items():
         #     print(key,value) 
         self.mapInit()
@@ -152,7 +154,7 @@ if __name__ == "__main__":
     
     done_step = 0
     average_step = 0
-    eps = 100000
+    eps = 1
     with tqdm(total=eps) as pbar:
         for _ in range(eps):
             done_step = 0
@@ -164,7 +166,7 @@ if __name__ == "__main__":
 
                 # print('action:%d, state:%d, reward:%d, done:%s, info:%s' % (action, obs, reward, done, info))
             
-                # env.render()
+                env.render()
                 done_step += 1
                 if done:
                     # print('done')
