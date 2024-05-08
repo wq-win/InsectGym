@@ -55,8 +55,8 @@ class BeeFoodEnv(discrete.DiscreteEnv):
         initial_state_distrib[0] = 1  
         initial_state_distrib /= initial_state_distrib.sum()
 
-        action_dict = {0: 'grip', 1: 'not move', 2: 'right', 3: 'left', 4: 'stand up', 5: 'pull'}
-        num_actions = len(action_dict)  # 0:握住 1:不动 2:右移 3:左移 4:站立 5:拽
+        action_dict = {0: 'grip', 1: 'not move', 2: 'right', 3: 'left', 4: 'eat', 5: 'pull'}
+        num_actions = len(action_dict)  # 0:握住 1:不动 2:右移 3:左移 4:吃 5:拽
         
         P = {
             state: {action: [] for action in range(num_actions)}
@@ -111,11 +111,18 @@ class BeeFoodEnv(discrete.DiscreteEnv):
         i *= self.num_locations
         i += bee_loc
         if is_grip == True:
-            i += self.num_locations * self.num_locations
+            i += self.num_locations ** 2
         return i
     
     def decode(self, i):
-        return i % self.num_locations, i // self.num_locations, bool(i - self.num_locations * self.num_locations + 1)
+        is_grip = i >= self.num_locations * self.num_locations
+        if is_grip: 
+            bee_loc = (i - self.num_locations ** 2) % self.num_locations
+            food_loc = (i - self.num_locations ** 2) // self.num_locations
+        else:
+            bee_loc = i % self.num_locations
+            food_loc = i // self.num_locations
+        return bee_loc, food_loc, is_grip
             
     def mapInit(self):
         self.desc = np.asarray(MAP[self.num_locations-2], dtype="c")
@@ -139,12 +146,12 @@ class BeeFoodEnv(discrete.DiscreteEnv):
             
             
 if __name__ == "__main__":
-    env = BeeFoodEnv(6)
+    env = BeeFoodEnv(3)
     obs = env.reset()
     
     done_step = 0
     average_step = 0
-    eps = 1000000
+    eps = 1
     with tqdm(total=eps) as pbar:
         for _ in range(eps):
             done_step = 0
@@ -154,9 +161,9 @@ if __name__ == "__main__":
             
                 obs, reward, done, info = env.step(action)
 
-                # print('action:%d, state:%d, reward:%d, done:%s, info:%s' % (action, obs, reward, done, info))
+                print('action:%d, state:%d, reward:%d, done:%s, info:%s' % (action, obs, reward, done, info))
             
-                # env.render()
+                env.render()
                 done_step += 1
                 if done:
                     # print('done')
