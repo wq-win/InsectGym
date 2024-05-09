@@ -38,12 +38,13 @@ MAP = [[
 
 class BeeFoodEnv(discrete.DiscreteEnv):
     """
-    action: 0: 'grip', 1: 'not move', 2: 'right', 3: 'left', 4: 'eat', 5: 'pull'
-    The bee must be at the far right in order to take action grip. 
+    action: 0: 'grip', 1: 'not move', 2: 'right', 3: 'left', 4: 'eat', 5: 'pull', 6: 'loosen'
+    The bee must be at the far right in order to take grip action. Then enter gripping state.
     Bee take not move action, do nothing.
     When bee take the right or left action, only 0.88 probability of success and 0.12 probability of failure.
     Bee must grip before pulling.
     Only bee and food are on the far right, bee can eat food.
+    when bee is in gripping state, take loosen action to exit.
     """
     metadata = {'render.modes': ['human', 'ansi']}
     
@@ -58,8 +59,8 @@ class BeeFoodEnv(discrete.DiscreteEnv):
         initial_state_distrib[0] = 1  
         initial_state_distrib /= initial_state_distrib.sum()
 
-        action_dict = {0: 'grip', 1: 'not move', 2: 'right', 3: 'left', 4: 'eat', 5: 'pull'}
-        num_actions = len(action_dict)  # 0:握住 1:不动 2:右移 3:左移 4:吃 5:拽
+        action_dict = {0: 'grip', 1: 'not move', 2: 'right', 3: 'left', 4: 'eat', 5: 'pull', 6: 'loosen'}
+        num_actions = len(action_dict)  # 0:握住 1:不动 2:右移 3:左移 4:吃 5:拽 6:松开
         
         P = {
             state: {action: [] for action in range(num_actions)}
@@ -98,13 +99,16 @@ class BeeFoodEnv(discrete.DiscreteEnv):
                             if state == self.encode(num_locations - 1, num_locations - 1, True):  
                                 reward = self.reward_options[1]
                                 done = True 
-                        else:  # pull
+                        elif action == 5:  # pull
                             # Bee must grip before pulling.
                             if state >= num_states // 2:  
                                 food_loc = min(food_location + 1, num_locations - 1)
                                 next_state = self.encode(bee_location, food_loc, is_grip) 
                             else:    
                                 next_state = state        
+                        else:  # loosen
+                            next_state = self.encode(bee_location, food_location, False)
+
                         P[state][action].append((prob, next_state, reward, done))
                         if prob != 1:
                             # Action execution failed, status remains unchanged
@@ -163,7 +167,7 @@ if __name__ == "__main__":
     
     done_step = 0
     average_step = 0
-    eps = 1000000
+    eps = 1
     with tqdm(total=eps) as pbar:
         for _ in range(eps):
             done_step = 0
@@ -173,9 +177,9 @@ if __name__ == "__main__":
             
                 obs, reward, done, info = env.step(action)
 
-                # print('action:%d, state:%d, reward:%d, done:%s, info:%s' % (action, obs, reward, done, info))
+                print('action:%d, state:%d, reward:%d, done:%s, info:%s' % (action, obs, reward, done, info))
             
-                # env.render()
+                env.render()
                 done_step += 1
                 if done:
                     # print('done')
